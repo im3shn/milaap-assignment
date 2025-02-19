@@ -1,0 +1,13 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  balance: 1.5
+  user: one
+  bank: one
+  account_type: one
+
+two:
+  balance: 1.5
+  user: two
+  bank: two
+  account_type: two

@@ -1,0 +1,11 @@
+# Read about fixtures at https://api.rubyonrails.org/classes/ActiveRecord/FixtureSet.html
+
+one:
+  is_minimum_balance_enforced: false
+  minimum_balance_needed: 1.5
+  bank: one
+
+two:
+  is_minimum_balance_enforced: false
+  minimum_balance_needed: 1.5
+  bank: two
