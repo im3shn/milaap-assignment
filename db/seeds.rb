@@ -23,7 +23,14 @@ end
 Bank.all.each do |bank|
   min_balance = 1000
   bank.account_types.create!(is_minimum_balance_enforced: false, minimum_balance_needed: 0)
-  4.times do
+  2.times do
+    bank.account_types.create!(is_minimum_balance_enforced: true,
+      minimum_balance_needed: min_balance)
+    min_balance += 1000
+  end
+  bank.account_types.create!(is_minimum_balance_enforced: false, minimum_balance_needed: 0)
+
+  2.times do
     bank.account_types.create!(is_minimum_balance_enforced: true,
       minimum_balance_needed: min_balance)
     min_balance += 1000
@@ -32,23 +39,13 @@ end
 
 users = User.all
 balance = 10000
+k = 0
 Bank.all.each do |bank|
   account_types = bank.account_types
-
   5.times do |i|
     bank.accounts.create!(balance: balance, user: users[i], account_type: account_types[i])
     balance += 10000
   end
-
+  k += 1
   balance += 10000
-end
-
-users = User.all
-balance = 10000
-Bank.all.each do |bank|
-  account_types = bank.account_types
-
-  2.times do |i|
-    bank.accounts.create!(balance: balance, user: users[i], account_type: account_types[i])
-  end
 end

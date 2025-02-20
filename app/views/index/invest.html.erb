@@ -1,1 +1,87 @@
-<h1>HI</h1>
+<%= form_with(url: "/invest", data: {turbo: false}) do |form| %>
+  <%= form.label :userId %>
+  <%= form.text_field :userId%> <br>
+   <%= form.label :investment %>
+  <%= form.number_field :investment %>
+  <%= form.submit "Send" %>
+<% end %>
+
+<%= @accounts %>
+<h2> Your Accounts </h2>
+<% if @accounts.present? and @accounts.any? %>
+  <table>
+    <thead>
+      <tr>
+        <th>Account ID</th>
+        <th>Account Name</th>
+        <th>Balance</th>
+        <th>Minimum Balance Enforced?</th>
+        <th>Minimum Balance</th>
+        <th>Available Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      <% @accounts.each do |account| %>
+        <tr>
+          <td><%= account[:id] %></td>
+          <td><%= account[:name] %></td>
+          <td><%= number_to_currency(account[:balance]) %></td>
+          <td><%= account[:is_minimum_balance_needed] %></td>
+          <td><%= number_to_currency(account[:minimum_balance_needed]) %></td>
+          <td><%= number_to_currency(account[:available_balance]) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+  </table>
+<% else %>
+  <p>No accounts found for this user.</p>
+<% end %>
+
+
+<% if @values.present? and @values.any? %>
+  <p> <%= @values %> </p>
+  <p> <%= @values[1] %> </p>
+  <% if @values[0] == 0 %>
+    <p> Exact match is found for</p>
+  <% end %>
+  <% if @values[0] == 1 %>
+    <p> Next Greater is found for</p>
+  <% end %>
+  <% if @values[0] == -1 %>
+    <p>  Multiple lesser is found for</p>
+  <% end %>
+  <% if @values[0] == -2 %>
+    <p> Not enough, you have less money totalled</p>
+  <% end %>
+  <%= number_to_currency(@values[2]) %>
+  <p> From the account(s)</p>
+  <% if @values[1].present? and @values[1].any? %>
+    <table>
+      <thead>
+        <tr>
+          <th>Account ID</th>
+          <th>Account Name</th>
+          <th>Balance</th>
+          <th>Minimum Balance Enforced?</th>
+          <th>Minimum Balance</th>
+          <th>Available Balance</th>
+        </tr>
+      </thead>
+    <tbody>
+      <% @values[1].each do |account| %>
+        <tr>
+          <td><%= account[:id] %></td>
+          <td><%= account[:name] %></td>
+          <td><%= number_to_currency(account[:balance]) %></td>
+          <td><%= account[:is_minimum_balance_needed] %></td>
+          <td><%= number_to_currency(account[:minimum_balance_needed]) %></td>
+          <td><%= number_to_currency(account[:available_balance]) %></td>
+        </tr>
+      <% end %>
+    </tbody>
+
+    </table>
+    <% else %>
+      <p>No accounts to display!!!.</p>
+    <% end %>   
+<% end %>

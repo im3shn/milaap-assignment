@@ -1,15 +1,22 @@
 class InvestmentAdjustmentService
   def initialize(userId, amount)
-    @user = User.find(userId)
+    @user = User.find(userId.to_i)
     @amount = amount.to_f
     @accounts = @user.accounts.includes(:bank).map do |acc|
       {
         id: acc.id,
-        name: "#{acc.bank.name}" + "-" + "acc.id",
-        available_balance: acc.balance - acc.account_type.minimum_balance_needed
+        name: "#{acc.bank.name}" + "-" + "#{acc.id}",
+        available_balance: acc.balance - acc.account_type.minimum_balance_needed,
+        balance: acc.balance,
+        is_minimum_balance_needed: acc.account_type.is_minimum_balance_enforced,
+        minimum_balance_needed: acc.account_type.minimum_balance_needed
       }
     end
     @combinations = combination_helper()
+  end
+
+  def get_accounts_of_user
+    @accounts
   end
 
 
@@ -19,7 +26,11 @@ class InvestmentAdjustmentService
          @combinations[@amount][0].length == 1
       exact_matches = @combinations[@amount][0]
     end
-    [ 0, exact_matches, @amount ]
+    exact_matches_account = @accounts.find { |account| account[:id] == exact_matches.first }
+    if !exact_matches_account
+      exact_matches_account = []
+    end
+    [ 0, [ exact_matches_account ], @amount ]
   end
 
   def total_available_balance
@@ -101,7 +112,7 @@ class InvestmentAdjustmentService
       matched_accounts = []
     end
 
-    [ 1, matched_accounts, stk.first ]
+    [ 1, [ matched_accounts ], stk.first ]
   end
 
   # 0->exact, 1->next greater, -1->multiple lesser
@@ -110,17 +121,17 @@ class InvestmentAdjustmentService
     total_available_balance_amount = total_available_balance()
     if total_available_balance_amount < @amount
       puts "not enough"
-      return [ -2, [], 0 ]
+      return [ -2, [], total_available_balance_amount ]
     end
 
     exact_match = exact_matcher()
-    if !exact_match[1].empty? and exact_match[1].length == 1
+    if exact_match[1][0].empty? and exact_match[1][0].length == 1
       puts "exect match"
       return exact_match
     end
 
     greater_match = next_greater_matcher()
-    if !greater_match[1].empty?
+    if !greater_match[1][0].empty?
       puts "next greater"
       return greater_match
     end
@@ -128,10 +139,8 @@ class InvestmentAdjustmentService
     multiple_lesser_matches = multiple_lesser_matcher()
     if !multiple_lesser_matches[1].empty?
       puts "multiple lesser"
-      return multiple_lesser_matches
+      multiple_lesser_matches
     end
-
-    "Noti="
   end
 
 
