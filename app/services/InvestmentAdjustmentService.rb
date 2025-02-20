@@ -1,27 +1,25 @@
 class InvestmentAdjustmentService
   def initialize(userId, amount)
     @user = User.find(userId)
-    @amount = amount
-    @accounts = @user.accounts.map do |acc|
+    @amount = amount.to_f
+    @accounts = @user.accounts.includes(:bank).map do |acc|
       {
         id: acc.id,
         name: "#{acc.bank.name}" + "-" + "acc.id",
         available_balance: acc.balance - acc.account_type.minimum_balance_needed
       }
     end
+    @combinations = combination_helper()
   end
 
 
   def exact_matcher
-    puts "HI from exact matcher"
     exact_matches = []
-    @accounts.each do |acc|
-      if acc[:available_balance] == @amount
-        exact_matches << acc
-      end
+    if  @combinations.key?(@amount) and
+         @combinations[@amount][0].length == 1
+      exact_matches = @combinations[@amount][0]
     end
-    puts exact_matches
-    exact_matches
+    [ 0, exact_matches, @amount ]
   end
 
   def total_available_balance
@@ -35,7 +33,43 @@ class InvestmentAdjustmentService
   end
 
   def multiple_lesser_matcher
-    []
+    lesser_matches = []
+    lesser_matched_amount = 0
+    remaining = @amount
+
+    while remaining > 0
+      if @combinations.key?(remaining)
+        lesser_matches = @combinations[remaining][0]
+        lesser_matched_amount += remaining
+        remaining -= remaining
+      else
+        stk = []
+        @combinations.each do |key, value|
+          if key < remaining
+            next
+          end
+          if stk.empty? or key >= stk.last
+            stk << key
+          else
+            while !stk.empty? and key <= stk.last
+              stk.pop
+            end
+            stk << key
+          end
+        end
+        lesser_matches = @combinations[stk.first][0]
+        lesser_matched_amount += stk.first
+        remaining -= stk.first
+      end
+    end
+
+    lesser_multiple_accounts = []
+    if !lesser_matches.empty?
+      lesser_multiple_accounts = @accounts.find_all { |acc| lesser_matches.include?(acc[:id]) }
+    end
+
+
+    [ -1, lesser_multiple_accounts, lesser_matched_amount ]
   end
 
   def next_greater_matcher
@@ -51,7 +85,7 @@ class InvestmentAdjustmentService
         stk << acc[:available_balance]
         accounts_greater << acc
       else
-        while acc[:available_balance] < stk.last
+        while !stk.empty? and acc[:available_balance] < stk.last
           stk.pop
           accounts_greater.pop
         end
@@ -60,45 +94,66 @@ class InvestmentAdjustmentService
       end
     end
 
-    accounts_greater
+    if !accounts_greater.empty?
+      matched_accounts = @accounts.find { |account| account[:id] == accounts_greater.first[:id] }
+    end
+    if matched_accounts == nil or matched_accounts.empty?
+      matched_accounts = []
+    end
+
+    [ 1, matched_accounts, stk.first ]
   end
 
-
+  # 0->exact, 1->next greater, -1->multiple lesser
+  # -2-> not enough
   def return_value
     total_available_balance_amount = total_available_balance()
-    puts total_available_balance_amount
     if total_available_balance_amount < @amount
       puts "not enough"
-      return []
+      return [ -2, [], 0 ]
     end
 
     exact_match = exact_matcher()
-    puts "st====="
-    puts exact_match
-    puts "ex end====="
-    if !exact_match.empty?
-      puts "exact"
-      return exact_match.first
+    if !exact_match[1].empty? and exact_match[1].length == 1
+      puts "exect match"
+      return exact_match
     end
 
     greater_match = next_greater_matcher()
-    puts greater_match
-    puts "gr end====="
-    if !greater_match.empty?
+    if !greater_match[1].empty?
       puts "next greater"
-      return greater_match.first
+      return greater_match
     end
 
     multiple_lesser_matches = multiple_lesser_matcher()
-    puts multiple_lesser_matches
-    puts "les end====="
-    if !multiple_lesser_matches.empty?
+    if !multiple_lesser_matches[1].empty?
       puts "multiple lesser"
-      multiple_lesser_matches
-
-    else
-      puts "no match"
-      []
+      return multiple_lesser_matches
     end
+
+    "Noti="
+  end
+
+
+  def combination_helper
+    sum_map = Hash.new { |hash, key| hash[key] = [] }
+
+    balances = @accounts
+
+    # Generate all possible combinations
+    (1..balances.length).each do |r|
+      balances.combination(r).each do |combo|
+        sum = combo.sum { |acc| acc[:available_balance] }
+        account_ids = combo.map { |acc| acc[:id] }
+        sum_map[sum] << account_ids
+      end
+    end
+
+    # Sort each array of combinations by the length of account_ids
+    sum_map.each do |sum, combos|
+      combos.sort_by! { |account_ids| account_ids.length }
+    end
+
+    sum_map
   end
 end

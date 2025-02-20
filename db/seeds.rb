@@ -42,3 +42,13 @@ Bank.all.each do |bank|
 
   balance += 10000
 end
+
+users = User.all
+balance = 10000
+Bank.all.each do |bank|
+  account_types = bank.account_types
+
+  2.times do |i|
+    bank.accounts.create!(balance: balance, user: users[i], account_type: account_types[i])
+  end
+end
